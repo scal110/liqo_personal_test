@@ -105,6 +105,24 @@ function create_cluster() {
     fail_on_error "kind create cluster --name $name \
         --kubeconfig $kubeconfig --config $config --wait 5m" "Failed to create cluster \"$name\""
     success_clear_line "Cluster \"$name\" has been created."
+
+install_cilium "$name" "$kubeconfig"
+
+}
+function install_cilium() {
+  local name="$1"
+  local kubeconfig="$2"
+  info "Installing cilium on cluster \$name\"..."
+  fail_on_error "helm install cilium cilium/cilium --version 1.16.3 \
+     --namespace kube-system \
+     --kubeconfig $kubeconfig \
+     --set image.pullPolicy=IfNotPresent \
+     --set ipam.mode=kubernetes \
+     --set affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key=liqo.io/type \
+     --set affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator=DoesNotExist \
+     --set hubble.relay.enabled=true \
+     --set hubble.ui.enabled=true" "Failed to install cilium on cluster \"$name\""
+  success_clear_line "cilium has been installed on cluster \"$name\""
 }
 
 function install_liqo() {
