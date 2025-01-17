@@ -25,7 +25,7 @@ require (
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.67.0
 	github.com/prometheus/client_golang v1.20.4
 	github.com/prometheus/client_model v0.6.1
-	github.com/prometheus/common v0.60.0
+	github.com/prometheus/common v0.62.0
 	github.com/pterm/pterm v0.12.79
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
@@ -34,14 +34,14 @@ require (
 	go4.org/netipx v0.0.0-20220925034521-797b0c90d8ab
 	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc
 	golang.org/x/mod v0.21.0
-	golang.org/x/sync v0.8.0
-	golang.org/x/sys v0.25.0
-	golang.org/x/text v0.18.0
+	golang.org/x/sync v0.10.0
+	golang.org/x/sys v0.28.0
+	golang.org/x/text v0.21.0
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20220504211119-3d4a969bb56b
 	gomodules.xyz/jsonpatch/v2 v2.4.0
 	google.golang.org/api v0.162.0
 	google.golang.org/grpc v1.65.0
-	google.golang.org/protobuf v1.35.1
+	google.golang.org/protobuf v1.36.1
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.16.2
 	k8s.io/api v0.31.2
@@ -212,7 +212,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/skeema/knownhosts v1.2.2 // indirect
 	github.com/spf13/cast v1.7.0 // indirect
-	github.com/stretchr/testify v1.9.0 // indirect
+	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/urfave/cli/v2 v2.23.7 // indirect
 	github.com/vishvananda/netns v0.0.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
@@ -239,10 +239,10 @@ require (
 	go.starlark.net v0.0.0-20231121155337-90ade8b19d09 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/crypto v0.27.0 // indirect
-	golang.org/x/net v0.29.0 // indirect
-	golang.org/x/oauth2 v0.23.0 // indirect
-	golang.org/x/term v0.24.0 // indirect
+	golang.org/x/crypto v0.31.0 // indirect
+	golang.org/x/net v0.33.0 // indirect
+	golang.org/x/oauth2 v0.24.0 // indirect
+	golang.org/x/term v0.27.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
 	golang.zx2c4.com/wireguard v0.0.0-20220904105730-b51010ba13f0 // indirect
