@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wireguard-config
+  namespace: liqo-demo
+data:
+  europe-rome-edge-wg0.conf: |
+    [Interface]
+    PrivateKey = iIMvZeUSoUTMaIL9JrQlVtvbJBcD25ETYU2JALZPNms=
+    Address = 10.204.1.1/24
+    ListenPort = 51820
+
+    [Peer]
+    PublicKey = Nzx7NYrcEpu4irury91Ki9HmjSFV5dzJNd4KDpH2OzE=
+    Endpoint = 172.18.0.4:30000
+    AllowedIPs = 10.204.1.0/24
+    PersistentKeepalive = 25
+
+  europe-milan-edge-wg0.conf: |
+    [Interface]
+    PrivateKey = WMQEV0no7aqmLnADP++qBGE3ekBPnUY39W+Clpl9Tkk=
+    Address = 10.204.1.2/24
+    ListenPort = 51820
+
+    [Peer]
+    PublicKey = NMUiSPeIFJkIZsHBU1cqO2s4r9HHnd/bWH3mubg19xs=
+    Endpoint = 172.18.0.3:30000
+    AllowedIPs = 10.204.1.0/24
+    PersistentKeepalive = 25

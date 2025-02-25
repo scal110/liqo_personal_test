@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wireguard-config-rome
+  namespace: liqo-demo
+data:
+  wg0.conf: |
+    [Interface]
+    PrivateKey = iIMvZeUSoUTMaIL9JrQlVtvbJBcD25ETYU2JALZPNms=
+    Address = 10.204.1.1/24
+    ListenPort = 51820
+
+    [Peer]
+    PublicKey = Nzx7NYrcEpu4irury91Ki9HmjSFV5dzJNd4KDpH2OzE=
+    Endpoint = 172.18.0.4:30001
+    AllowedIPs = 10.204.1.0/24, 10.202.0.0/24
+    PersistentKeepalive = 25
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway-wg-rome
+  namespace: liqo-demo
+  labels:
+    app: gateway-wg-rome
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+            - europe-rome-edge  # Specifica il nodo desiderato
+  containers:
+  - name: wireguard
+    image: linuxserver/wireguard
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - mountPath: /etc/wireguard
+      name: wireguard-config
+    env:
+    - name: TZ
+      value: "Europe/Rome"
+    - name: PEERDNS
+      value: "auto"
+    ports:
+    - containerPort: 51820
+      protocol: UDP
+    - containerPort: 10000
+      protocol: UDP
+    command:
+    - /bin/sh
+    - -c
+    - |
+      # Abilita il forwarding IP
+      sysctl -w net.ipv4.ip_forward=1 && \
+
+      # Installa nftables (se necessario)
+      apk add --no-cache nftables || true && \
+
+      # Configura nftables
+      nft add table ip filter || true && \
+      nft add chain ip filter prerouting { type nat hook prerouting priority filter \; } || true && \
+      nft add chain ip filter postrouting { type nat hook postrouting priority srcnat \; } || true && \
+      nft add chain ip filter input { type filter hook input priority filter \; } || true && \
+      nft add chain ip filter forward { type filter hook forward priority filter \; } || true && \
+      nft add rule ip filter prerouting iifname "geneve0" ip daddr 10.202.0.0/24 counter packets 0 bytes 0 || true && \
+      nft add rule ip filter postrouting oifname "wg0" masquerade || true && \
+      nft add rule ip filter input udp dport 10000 accept || true && \
+      nft add rule ip filter input iifname "geneve0" ip daddr 10.202.0.0/24 counter packets 0 bytes 0 || true && \
+      nft add rule ip filter forward iifname "geneve0" oifname "wg0" ip daddr 10.202.0.0/24 accept || true && \
+
+      nft add table ip nat || true && \
+      nft add chain ip nat prerouting { type nat hook prerouting priority filter \; } || true && \
+      nft add chain ip nat postrouting { type nat hook postrouting priority srcnat \; } || true && \
+      nft add rule ip nat postrouting oifname "wg0" masquerade || true && \
+
+      # Avvia WireGuard
+      wg-quick up /etc/wireguard/wg0.conf && \
+
+      # Mantieni il container in esecuzione
+      tail -f /dev/null
+  volumes:
+  - name: wireguard-config
+    configMap:
+      name: wireguard-config-rome
+  restartPolicy: Always
+

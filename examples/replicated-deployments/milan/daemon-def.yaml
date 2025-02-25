@@ -1,0 +1,79 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: liqo-demo  # Namespace dove esegui il DaemonSet
+  name: role-daemon
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "deployments"]  # Aggiungi le risorse che desideri gestire
+    verbs: ["get", "list", "create", "delete", "update"]
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubectl-role-binding
+  namespace: liqo-demo  # Namespace dove esegui il DaemonSet
+subjects:
+  - kind: ServiceAccount
+    name: default  # O il nome del tuo ServiceAccount
+    namespace: liqo-demo
+roleRef:
+  kind: Role
+  name: role-daemon
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: milan-net-setup
+  namespace: liqo-demo
+spec:
+  selector:
+    matchLabels:
+      app: milan-net-setup
+  template:
+    metadata:
+      labels:
+        app: milan-net-setup
+    spec:
+      hostNetwork: true
+      hostPID: true
+      serviceAccountName: default
+      containers:
+      - name: milan-net-setup
+        image: alpine:latest  # Usa un'immagine leggera che può eseguire comandi di rete
+        command:
+          - /bin/sh
+          - -c
+          - |
+            apk update && apk add curl && apk add iproute2
+
+            # Scarica kubectl dalla versione ufficiale
+            curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.24.0/bin/linux/amd64/kubectl
+            chmod +x kubectl
+            mv kubectl /usr/local/bin/
+            # Ottieni l'IP del Pod destinazione da un servizio o da un altro metodo
+            DEST_POD_IP=$(kubectl get pod gateway-wg-milan -n liqo-demo -o jsonpath='{.status.podIP}') || echo "riga 1" && \
+            echo $DEST_POD_IP  && \
+            # Crea un tunnel Geneve usando l'IP ottenuto
+            ip link del geneve0
+            ip link add geneve0 type geneve id 100 remote $DEST_POD_IP dstport 10000 || echo "creation" && \
+            ip addr add 10.100.1.1/24 dev geneve0  || echo "ip_addr" && \
+            ifconfig geneve0 mtu 1340 up  || echo "up" && \
+
+            # Configura una rotta o altre operazioni se necessario
+            ip route add 10.203.0.0/24 via 10.100.1.2 dev geneve0  || echo "route" && \
+
+            # Mantieni il container in esecuzione
+            tail -f /dev/null
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+            - NET_RAW
+          privileged: true  # Necessario per configurare l'interfaccia di rete
+      restartPolicy: Always

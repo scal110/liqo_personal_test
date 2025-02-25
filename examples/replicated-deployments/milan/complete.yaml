@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wireguard-config-milan
+  namespace: liqo-demo
+data:
+  wg0.conf: |
+    [Interface]
+    PrivateKey = WMQEV0no7aqmLnADP++qBGE3ekBPnUY39W+Clpl9Tkk=
+    Address = 10.204.1.2/24
+    ListenPort = 51820
+
+    [Peer]
+    PublicKey = NMUiSPeIFJkIZsHBU1cqO2s4r9HHnd/bWH3mubg19xs=
+    Endpoint = 172.18.0.3:30000
+    AllowedIPs = 10.204.1.0/24, 10.203.0.0/24
+    PersistentKeepalive = 25
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway-wg-milan
+  namespace: liqo-demo
+  labels:
+    app:  gateway-wg-milan
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+            - europe-milan-edge  # Specifica il nodo desiderato
+  containers:
+  - name: wireguard
+    image: linuxserver/wireguard
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - mountPath: /etc/wireguard
+      name: wireguard-config
+    env:
+    - name: TZ
+      value: "Europe/Rome"
+    - name: PEERDNS
+      value: "auto"
+    ports:
+    - containerPort: 51820
+      protocol: UDP
+    - containerPort: 10000
+      protocol: UDP
+    command:
+    - /bin/sh
+    - -c
+    - |
+      # Abilita il forwarding IP
+      sysctl -w net.ipv4.ip_forward=1 && \
+
+      DEFAULT_GW=$(ip route show default | awk '{print $3}')
+      #Crea interfaccia geneve0
+      ip link add geneve0 type geneve id 100 remote $DEFAULT_GW dstport 10000
+      ip addr add 10.100.1.2/24 dev geneve0
+      ifconfig geneve0 mtu 1340 up
+
+      # Installa nftables (se necessario)
+      apk add --no-cache nftables || true && \
+
+      # Configura nftables
+
+      nft add table ip nat || true && \
+      nft add chain ip nat prerouting { type nat hook prerouting priority filter \; } || true && \
+      nft add rule ip nat prerouting iifname "wg0" ip daddr 10.203.0.0/24 dnat ip prefix to ip daddr map {10.203.0.0/24 : 10.202.0.0/24 }
+      nft add chain ip nat postrouting { type nat hook postrouting priority srcnat \; } || true && \
+      nft add rule ip nat postrouting oifname "wg0" masquerade || true && \
+      nft add rule ip nat postrouting oifname "eth0" masquerade || true && \
+
+      # Avvia WireGuard
+      wg-quick up /etc/wireguard/wg0.conf && \
+
+      # Mantieni il container in esecuzione
+      tail -f /dev/null
+  volumes:
+  - name: wireguard-config
+    configMap:
+      name: wireguard-config-milan
+  restartPolicy: Always
+

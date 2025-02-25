@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway-wg-rome
+  namespace: liqo-demo
+  labels:
+    app: gateway-wg-rome
+spec:
+   affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+            -  europe-rome-edge
+  containers:
+  - name: wireguard
+    image: linuxserver/wireguard
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - mountPath: /etc/wireguard
+      name: wireguard-config
+    env:
+    - name: TZ
+      value: "Europe/Rome"
+    - name: PEERDNS
+      value: "auto"
+    ports:
+    - containerPort: 51820
+      protocol: UDP
+    command:
+    - /bin/sh
+    - -c
+    - |
+      sysctl -w net.ipv4.ip_forward=1 && \
+      iptables -t nat -A POSTROUTING -o wg0 -j MASQUERADE && \
+      iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE && \
+      wg-quick up /etc/wireguard/wg0.conf && tail -f /dev/null
+  volumes:
+  - name: wireguard-config
+    configMap:
+      name: wireguard-config-rome
+  restartPolicy: Always
+

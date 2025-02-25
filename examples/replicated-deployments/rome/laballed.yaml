@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wireguard-config-rome
+  namespace: liqo-demo
+data:
+  wg0.conf: |
+    [Interface]
+    PrivateKey = iIMvZeUSoUTMaIL9JrQlVtvbJBcD25ETYU2JALZPNms=
+    Address = 10.204.1.1/24
+    ListenPort = 51820
+
+    [Peer]
+    PublicKey = Nzx7NYrcEpu4irury91Ki9HmjSFV5dzJNd4KDpH2OzE=
+    Endpoint = 172.18.0.4:30001
+    AllowedIPs = 10.204.1.0/24, 10.202.0.0/24
+    PersistentKeepalive = 25
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway-wg-geneve
+  namespace: liqo-demo
+  labels:
+    app: gateway-wg-rome
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+            - europe-rome-edge  # Specifica il nodo desiderato
+  containers:
+  - name: wireguard
+    image: linuxserver/wireguard
+    securityContext:
+      capabilities:
+        add:
+        - NET_ADMIN
+        - NET_RAW
+      privileged: true
+    volumeMounts:
+    - mountPath: /etc/wireguard
+      name: wireguard-config
+    env:
+    - name: TZ
+      value: "Europe/Rome"
+    - name: PEERDNS
+      value: "auto"
+    ports:
+    - containerPort: 51820
+      protocol: UDP
+    command:
+    - /bin/sh
+    - -c
+    - |
+      sysctl -w net.ipv4.ip_forward=1 && \
+      iptables -t nat -A POSTROUTING -o wg0 -j MASQUERADE && \
+      tail -f /dev/null
+
+  - name: geneve
+    image: ghcr.io/liqotech/gateway/geneve:v1.0.0-rc.2
+    securityContext:
+      capabilities:
+        add:
+        - NET_ADMIN
+        - NET_RAW
+      privileged: true
+    env:
+    - name: NODE_NAME
+      valueFrom:
+        fieldRef:
+          apiVersion: v1
+          fieldPath: spec.nodeName
+    - name: GENEVE_PORT
+      value: "6091"  # Porta per Geneve
+    ports:
+    - containerPort: 6091
+      protocol: UDP
+  volumes:
+  - name: wireguard-config
+    configMap:
+      name: wireguard-config-rome  # ConfigMap con configurazione WireGuard
+  restartPolicy: Always
+

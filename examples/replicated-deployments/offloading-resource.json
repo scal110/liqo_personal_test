@@ -1,0 +1,72 @@
+{
+    "apiVersion": "offloading.liqo.io/v1beta1",
+    "kind": "NamespaceOffloading",
+    "metadata": {
+        "creationTimestamp": "2024-11-13T17:55:10Z",
+        "deletionGracePeriodSeconds": 0,
+        "deletionTimestamp": "2024-11-19T15:55:13Z",
+        "generation": 2,
+        "name": "offloading",
+        "namespace": "liqo-demo",
+        "resourceVersion": "1339177",
+        "uid": "10c9bc91-2994-4a74-80bc-a6cec6f6ea01"
+    },
+    "spec": {
+        "clusterSelector": {
+            "nodeSelectorTerms": [
+                {
+                    "matchExpressions": [
+                        {
+                            "key": "topology.liqo.io/type",
+                            "operator": "In",
+                            "values": [
+                                "destination"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "namespaceMappingStrategy": "EnforceSameName",
+        "podOffloadingStrategy": "Remote"
+    },
+    "status": {
+        "observedGeneration": 2,
+        "offloadingPhase": "Terminating",
+        "remoteNamespaceName": "liqo-demo",
+        "remoteNamespacesConditions": {
+            "europe-milan-edge": [
+                {
+                    "lastTransitionTime": "2024-11-19T15:55:13Z",
+                    "message": "The remote cluster has not been selected through the ClusterSelector field",
+                    "reason": "ClusterNotSelected",
+                    "status": "False",
+                    "type": "OffloadingRequired"
+                },
+                {
+                    "lastTransitionTime": "2024-11-19T15:15:02Z",
+                    "message": "Namespace correctly offloaded to the remote cluster",
+                    "reason": "NamespaceCreated",
+                    "status": "True",
+                    "type": "Ready"
+                }
+            ],
+            "europe-rome-edge": [
+                {
+                    "lastTransitionTime": "2024-11-19T15:55:13Z",
+                    "message": "The remote cluster has not been selected through the ClusterSelector field",
+                    "reason": "ClusterNotSelected",
+                    "status": "False",
+                    "type": "OffloadingRequired"
+                },
+                {
+                    "lastTransitionTime": "2024-11-19T15:09:39Z",
+                    "message": "Namespace correctly offloaded to the remote cluster",
+                    "reason": "NamespaceCreated",
+                    "status": "True",
+                    "type": "Ready"
+                }
+            ]
+        }
+    }
+}

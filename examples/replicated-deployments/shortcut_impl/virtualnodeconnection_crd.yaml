@@ -1,0 +1,55 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: virtualnodeconnections.networking.liqo.io
+spec:
+  group: networking.liqo.io
+  scope: Cluster
+  names:
+    plural: virtualnodeconnections
+    singular: virtualnodeconnection
+    kind: VirtualNodeConnection
+    shortNames:
+      - vnc
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                virtualNodeA:
+                  type: string
+                  description: "Nome del primo Virtual Node"
+                kubeconfigA:
+                  type: string
+                  description: "Nome del Secret che contiene la kubeconfig del primo Virtual Node"
+                virtualNodeB:
+                  type: string
+                  description: "Nome del secondo Virtual Node"
+                kubeconfigB:
+                  type: string
+                  description: "Nome del Secret che contiene la kubeconfig del secondo Virtual Node"
+              required: ["virtualNodeA", "kubeconfigA", "virtualNodeB", "kubeconfigB"]
+            status:
+              type: object
+              properties:
+                isConnected:
+                  type: boolean
+                  description: "Indica se la connessione tra i due Virtual Nodes è attiva"
+                lastUpdated:
+                  type: string
+                  format: date-time
+                  description: "Ultima volta che lo stato è stato aggiornato"
+                phase:
+                  type: string
+                  description: "Stato della connessione (Pending, Connecting, Connected, Failed)"
+                errorMessage:
+                  type: string
+                  nullable: true
+                  description: "Messaggio di errore in caso di fallimento della connessione"
+

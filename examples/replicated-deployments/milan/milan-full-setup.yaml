@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wireguard-config-milan
+  namespace: liqo-demo
+data:
+  wg0.conf: |
+    [Interface]
+    PrivateKey = WMQEV0no7aqmLnADP++qBGE3ekBPnUY39W+Clpl9Tkk=
+    Address = 10.204.1.2/24
+    ListenPort = 51820
+
+    [Peer]
+    PublicKey = NMUiSPeIFJkIZsHBU1cqO2s4r9HHnd/bWH3mubg19xs=
+    Endpoint = 172.18.0.3:30000
+    AllowedIPs = 10.204.1.0/24, 10.201.0.0/24
+    PersistentKeepalive = 25
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wireguard-service-milan
+  namespace: liqo-demo
+  annotations:
+    liqo.io/enable-reflection: "false"
+spec:
+  selector:
+    app: gateway-wg-milan
+  ports:
+    - protocol: UDP
+      port: 51820
+      targetPort: 51820
+      nodePort: 30001 # Cambiare rispetto al servizio di Roma per evitare conflitti
+  type: NodePort
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gateway-wg-milan
+  namespace: liqo-demo
+  labels:
+    app:  gateway-wg-milan
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+            - europe-milan-edge  # Specifica il nodo desiderato
+  containers:
+  - name: wireguard
+    image: linuxserver/wireguard
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - mountPath: /etc/wireguard
+      name: wireguard-config
+    env:
+    - name: TZ
+      value: "Europe/Rome"
+    - name: PEERDNS
+      value: "auto"
+    ports:
+    - containerPort: 51820
+      protocol: UDP
+    command:
+    - /bin/sh
+    - -c
+    - |
+      sysctl -w net.ipv4.ip_forward=1 && \
+      iptables -t nat -A POSTROUTING -o wg0 -j MASQUERADE && \
+      iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE && \
+      wg-quick up /etc/wireguard/wg0.conf && tail -f /dev/null
+  volumes:
+  - name: wireguard-config
+    configMap:
+      name: wireguard-config-milan
+  restartPolicy: Always
+

@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway-wg-rome-milan
+  namespace: liqo-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gateway-wg-rome-milan
+  template:
+    metadata:
+      labels:
+        app: gateway-wg-rome-milan
+    spec:
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: gateway-wg-rome-milan
+      containers:
+      - name: wireguard
+        image: linuxserver/wireguard
+        securityContext:
+          privileged: true
+          capabilities:
+            add:
+            - NET_ADMIN
+        env:
+        - name: CLUSTER_ZONE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.labels['offloading.liqo.io/nodename'] # Identifica il cluster
+        volumeMounts:
+        - mountPath: /etc/wireguard
+          name: wireguard-config
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "/etc/wireguard/$(CLUSTER_ZONE)-wg0.conf"
+          wg-quick up /etc/wireguard/${CLUSTER_ZONE}-wg0.conf && \
+          # Abilita il forwarding IP
+          sysctl -w net.ipv4.ip_forward=1 && \
+          DEFAULT_GW=$(ip route show default | awk '{print $3}')
+          #Crea interfaccia geneve0
+          ip link add geneve0 type geneve id 100 remote $DEFAULT_GW dstport 10000
+          ip addr add 10.100.1.2/24 dev geneve0
+          ifconfig geneve0 mtu 1340 up
+
+          # Installa nftables (se necessario)
+          apk add --no-cache nftables || true && \
+
+          # Configura nftables
+
+          nft add table ip nat || true && \
+          nft add chain ip nat prerouting { type nat hook prerouting priority filter \; } || true && \
+          nft add rule ip nat prerouting iifname "wg0" ip daddr 10.203.0.0/24 dnat ip prefix to ip daddr map {10.203.0.0/24 : 10.201.0.0/24 }
+          nft add chain ip nat postrouting { type nat hook postrouting priority srcnat \; } || true && \
+          nft add rule ip nat postrouting oifname "wg0" masquerade || true && \
+          nft add rule ip nat postrouting oifname "eth0" masquerade || true && \
+          tail -f /dev/null
+        ports:
+        - containerPort: 51820
+          protocol: UDP
+        - containerPort: 10000
+          protocol: UDP
+      volumes:
+      - name: wireguard-config
+        configMap:
+          name: wireguard-config
+

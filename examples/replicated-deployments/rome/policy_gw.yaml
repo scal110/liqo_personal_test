@@ -1,0 +1,12 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: allow-gateway-outbound
+  namespace: liqo-demo
+spec:
+  endpointSelector:
+    matchLabels:
+      role: gw-rome-wg
+  egress:
+    - toCIDR:
+      - "0.0.0.0/0"  # Permetti traffico a tutte le destinazioni

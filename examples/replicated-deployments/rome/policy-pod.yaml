@@ -1,0 +1,12 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: restrict-egress-other-pods
+  namespace: liqo-demo
+spec:
+  endpointSelector: {}  # Seleziona tutti i pod
+  egress:
+  - toEndpoints:
+      - matchLabels:
+          role: gw-rome-wg  # Solo i pod con label 'role: gateway'
+  # Le altre regole sono implicite, ma puoi definirle per maggiore controllo

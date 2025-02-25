@@ -1,0 +1,10 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: liqo-demo  # Namespace dove esegui il DaemonSet
+  name: role-daemon
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "deployments"]  # Aggiungi le risorse che desideri gestire
+    verbs: ["get", "list", "create", "delete", "update"]
+
