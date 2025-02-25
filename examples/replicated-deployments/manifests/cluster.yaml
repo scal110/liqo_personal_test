@@ -6,4 +6,4 @@ networking:
   podSubnet: "10.200.0.0/16"
 nodes:
   - role: control-plane
-    image: kindest/node:v1.30.0
+    image: custom-kind-node:v1.30.0
