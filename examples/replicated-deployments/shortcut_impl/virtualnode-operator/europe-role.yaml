@@ -1,0 +1,24 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: liqo-configmaps-reader
+  namespace: liqo
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: liqo-configmaps-reader-binding
+  namespace: liqo
+subjects:
+- kind: ServiceAccount
+  name: europe-cloud  # oppure il nome corretto del service account usato
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: liqo-configmaps-reader
+
